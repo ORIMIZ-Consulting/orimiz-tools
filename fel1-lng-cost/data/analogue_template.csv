@@ -1,0 +1,2 @@
+id,project,country,region,facility_type,site_type,capacity_mtpa,capacity_note,cost_amount_million,currency,fx_to_usd,cost_year,scope,includes_financing_costs,source_url,notes
+my_project_1,Example project name,Country,Region,onshore_liquefaction,greenfield,5.0,,5000,USD,1.0,2024,plant_only,no,https://link-to-your-source,Replace this row with your own data

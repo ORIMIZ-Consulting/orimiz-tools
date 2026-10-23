@@ -1,0 +1,16 @@
+# Private data: never upload
+private_*
+*.private.csv
+
+# Outputs
+*.xlsx
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+
+# Secrets
+.env
