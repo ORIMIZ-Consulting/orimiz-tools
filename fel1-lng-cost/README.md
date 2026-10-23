@@ -1,17 +1,17 @@
 # FEL1 LNG Cost
 
-A free tool that gives a first capital cost range for an LNG plant, early in a project (FEL1, concept stage). It works from past projects whose costs are public. These past projects are called **analogues**.
+A free tool for a first capital cost estimate of an LNG liquefaction plant, at FEL 1 (concept stage). It works from past projects with published costs, called **analogs**.
 
-It covers four kinds of facility:
+The tool follows the [FEL 1 LNG Capital Cost Estimating Guideline v0.1](docs/GUIDELINE.md). The guideline has 13 steps. In each step, every method choice is a **switch** with options, a default and a source. You can change any switch. The tool records every switch, defaults included, in a **decision log**.
 
-- Onshore liquefaction plants
-- Floating liquefaction (FLNG)
-- Onshore regasification (import) terminals
-- Floating storage and regasification units (FSRU)
+> **Use with care.** The result is an AACE Class 5 estimate: good for screening ideas, comparing concepts and supporting a Gate 1 decision. It is not a budget, and it must not be used for an investment decision. The range is a set of reasoned bounds, not a statistical P10 and P90.
 
-You enter the size of your plant, the year, and a few method choices. The tool returns a P10, P50 and P90 cost in US dollars, shows how each analogue led to its number, and exports the result to Excel.
+## What it covers
 
-> **Use with care.** This is a screening estimate (AACE Class 5). It is good for comparing options and checking whether an idea is worth more study. It is not a budget and must not be used for an investment decision.
+| Facility | Status |
+|---|---|
+| Onshore liquefaction | Full method, all 13 steps |
+| FLNG, onshore regas terminals, FSRUs | Preview. The guideline does not cover these yet. The tool runs the shared steps and switches off the liquefaction-only factors. |
 
 ## Quick start
 
@@ -23,69 +23,99 @@ pip install -r requirements.txt
 streamlit run app.py
 ```
 
-Your browser opens the form. Fill in the sidebar from top to bottom, then read the result and download the Excel workbook.
+Your browser opens the app.
 
-To use it from Python instead, see `examples/example_estimate.py`.
+1. Fill in **Step 1** in the sidebar: purpose, train size, number of trains, site type and location.
+2. Read the **Result** tab.
+3. Review the switches in **Method switches**, the weights in **Analogs and weights**, and add site items in **Site items**. Give a reason for each change.
+4. Download the Excel workbook.
 
-## How it works
+To use it from Python, see `examples/example_estimate.py`. It compares a greenfield plant with a brownfield variant.
 
-For each analogue the tool does four things:
+## How the tool follows the guideline
 
-1. **Escalate** the cost from its own year to your year. By default it adds 3% a year. You can upload a cost index instead.
-2. **Relocate** it. You give a location factor for each region and for your site. Leave them all at 1.00 for no adjustment.
-3. **Scale** it to your size with the exponent rule: cost = analogue cost × (your size ÷ analogue size)^0.7. Bigger plants cost less per tonne.
-4. **Weight** it. An analogue the same size as yours counts fully. One twice or half your size counts half.
+| Step | What the tool does |
+|---|---|
+| 1. Key inputs | Purpose, capacity per train and train count, site type, location, date, feed gas, process family, battery limits, accuracy target. |
+| 2. Analog selection | Filters on facility type, train size band (0.5 to 2 times), FID date (last 15 years), scope, site type, size cluster and process family. Every analog filtered out shows the reason. Warns below 5 analogs; stops below 3. |
+| 3. Adjustment method | Multiply (default), or hybrid: storage and marine are taken out of the analogs and added back as the target's own blocks. |
+| 4. Escalation | Constant rate, cost index, damped index, or two cases. With an index loaded, the default runs two cases: full index (high) and half the index change (low). Shows the calibration pairs that test the damping fraction. |
+| 5. Location | OIES location groups (USA 1.00 to NW Australia 1.72), with steps of 0.10. Optionally applies the factor to the construction share only (32%). |
+| 6. Scope and complexity | Plant-only splits, owner's costs on EPC-only figures, site type to greenfield, multi-train to one train, gas complexity (simple or graded), CO2 sequestration. |
+| 7. Size scaling | Unit cost × (target train ÷ analog train)^(n − 1), n = 0.7. Always shows n = 0.6 and 0.8. Reports a fitted n but does not use it unless you ask. Three methods for multi-train targets. |
+| 8. Combining | Rubric points for each analog, your weight (1, 2 or 3) with a reason where it differs, outlier flags, and weighted mean, simple mean and median side by side. |
+| 9. Site items | A register of site items. Each one is added to the base, carried as a risk or opportunity, or noted, by the guideline's decision tree and materiality threshold. Helpers for tanks and dredging. |
+| 10. Variants | Other methods for the same option, the rule for choosing the base, and a block-by-block brownfield method. |
+| 11. Cost blocks | By cost type (OIES) and by area. Items outside the battery limits are removed by block. |
+| 12. Range | Built from the escalation cases, the analog spread, definition growth and site risks, then checked against the class band. Contingency only for the share of weight not on sanctioned budgets. Correlated comparison of two options. |
+| 13. Outputs | Summary, analog journey table and chart, escalation chart, size curve, weights panel, cost blocks, risk register, range chart, sensitivities, decision log, references, and an Excel workbook with all of them. |
 
-The P50 is the weighted middle of these numbers. The P10 and P90 come from their spread, but are never narrower than the accuracy band you choose (default -30% and +50%).
+`fel1_lng_cost/factors.py` lists every default with its source. Defaults that rest on judgment say so.
 
-[METHODOLOGY.md](METHODOLOGY.md) explains each step, its formula and its limits.
+## The public analogs
 
-## The public analogues
+`data/public_analogs.csv` holds 45 projects. Every row has a source link and a note on what the figure covers.
 
-`data/public_analogues.csv` holds 24 projects. Every row links to its source. Unit costs are as reported, before escalation.
-
-| Type | Projects | Cost years | Notes |
+| Facility | Projects | FID years | With a plant-only split |
 |---|---|---|---|
-| Onshore liquefaction | 15 | 2013 to 2025 | Mostly US Gulf Coast. Five include upstream or are unclear and are left out by default. |
-| FLNG | 4 | 2017 to 2025 | Two are FLNG units only (conversions). Two include subsea wells or are unclear. |
-| Onshore regas | 4 | 2007 to 2017 | Netherlands, France, India, Singapore. |
-| FSRU | 1 | 2022 | Shipyard price for the vessel only. |
+| Onshore liquefaction | 31 | 2007 to 2025 | 21 |
+| FLNG | 9 | 2011 to 2025 | 5 |
+| Onshore regas | 4 | 2007 to 2017 | 0 |
+| FSRU | 1 | 2022 | 0 |
 
-Important points about this data:
+Most onshore projects come from Appendix 1 of the OIES paper the guideline cites (Songhurst, 2018). It gives a total cost and a liquefaction-only cost for each project. Newer projects (Rio Grande, Port Arthur, Louisiana LNG, Nigeria LNG Train 7 and others) come from company releases.
 
-- **Scope differs.** Some figures include a pipeline, financing costs or upstream fields. The `scope` and `notes` columns say what each one covers. By default the tool uses only "plant only" and "plant plus pipeline" rows.
-- **Figures are announced costs**, mostly at the final investment decision. Final costs are often higher.
-- **Few regas, FLNG and FSRU projects.** Treat those results with extra caution, or add your own.
-- **Exchange rates** for the euro and Singapore dollar rows are approximate yearly averages. Check them if they matter to you.
+Each row records the guideline's Step 2 fields: project, country, site type, trains, train size, FID year, published figure, currency, what the figure covers, contingency status, source and a data quality grade (A, B or C).
 
-## Adding your own projects
+Points to know:
 
-1. Copy `data/analogue_template.csv`.
+- **Money year.** For OIES figures that are final or latest costs, the money year is the middle of construction. This is a judgment, noted in each row.
+- **Location groups and steps** for each analog follow the guideline's step rule. Judgment calls are noted in the row.
+- **Site type.** Liquefaction added to an existing import terminal is treated as brownfield, as OIES does. Donggi-Senoro and LNG Canada are treated as partly brownfield (built on existing industrial sites).
+- **Process family, FID year and contractor** are from public record, not always from the cost source. Rows marked "check" deserve a second look.
+- **Exchange rates** for the euro and Singapore dollar rows are approximate yearly averages.
+
+## Adding your own analogs
+
+1. Copy `data/analog_template.csv`.
 2. Name the copy so it starts with `private_`, for example `private_my_projects.csv`.
-3. Fill in one row per project. Use the same codes as the public file for `facility_type` and `scope`.
-4. Load it in the web form (sidebar, step 2) or in Python with `load_analogues("private_my_projects.csv")`.
+3. Fill in one row per project, with the same codes as the public file.
+4. Load it in the app (Analogs and weights tab) or in Python with `load_analogs("private_my_projects.csv")`.
 
-Files starting with `private_` are ignored by git, so they are never uploaded to GitHub. If your row has the same `id` as a public row, your row replaces it.
+Git ignores files that start with `private_`, so they never reach GitHub. A row with the same `id` as a public row replaces it.
+
+## Loading a cost index
+
+CEPCI and the S&P Global indices are copyrighted, so the tool cannot ship them. If you hold one, fill in `data/cost_index_template.csv` (columns `year` and `index`), save it as `private_cost_index.csv`, and load it in the Method switches tab, Step 4. The tool then runs the two default escalation cases.
 
 ## Files
 
 | Path | What it is |
 |---|---|
-| `app.py` | The web form |
-| `fel1_lng_cost/analogues.py` | Loads and checks analogue data |
-| `fel1_lng_cost/estimate.py` | The estimating method |
-| `fel1_lng_cost/export.py` | Excel export |
-| `data/public_analogues.csv` | Public analogue projects with sources |
-| `data/analogue_template.csv` | Blank row for your own projects |
-| `examples/example_estimate.py` | A worked example in Python |
+| `app.py` | The web app |
+| `fel1_lng_cost/factors.py` | Every default and its source |
+| `fel1_lng_cost/basis.py` | Step 1 inputs, every switch, and the decision log |
+| `fel1_lng_cost/estimate.py` | Steps 2 to 12 |
+| `fel1_lng_cost/export.py` | Excel workbook |
+| `fel1_lng_cost/charts.py` | Charts for the app |
+| `data/public_analogs.csv` | Public analogs with sources |
+| `data/analog_template.csv` | Blank row for your own analogs |
+| `data/cost_index_template.csv` | Blank cost index |
+| `docs/GUIDELINE.md` | The estimating guideline |
+| `examples/example_estimate.py` | Greenfield against brownfield, in Python |
 | `tests/` | Automatic checks. Run `pytest` |
 
-## Limits
+## Known limits
 
-- It knows only what the analogues know. A plant unlike any of them (very small, very cold site, unusual gas) needs a different approach.
-- Escalation at a constant rate is rough over long periods. A cost index is better.
-- The size exponent is a rule of thumb. Number of trains, modular design and site works all change the real answer.
-- Location factors are your judgement. The tool does not supply them.
+These come from the guideline (Section 19), plus a few of the tool's own.
+
+- Location factors and the escalation case move every analog together. They are the largest judgments, so the tool always shows their sensitivity.
+- Public figures rarely state their full scope. Read each source before using a number.
+- Most figures are announced at FID. Final costs are often higher.
+- OIES factors reflect 2014 to 2018 conditions and a limited project set.
+- The estimate date is a year, not a quarter.
+- Probabilistic ranging (Step 12, option D) is for FEL 2 and is not built.
+- The tool sets no location factor of its own beyond the OIES groups and the step rule.
 
 ## Licence
 

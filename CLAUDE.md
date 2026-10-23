@@ -15,6 +15,10 @@ Claude reads this file at the start of every session in this repository.
 - Say what a cost figure covers (its scope) and its year. Do not mix scopes silently.
 - Private user data goes in files starting with `private_`. These are git-ignored. Never commit them.
 
+## Method
+
+- A tool that has a guideline in `docs/` must follow it. Every method choice is a switch with options, a default and a source, and every switch goes into the decision log.
+
 ## Code
 
 - Python 3.10 or newer. Keep dependencies few.
